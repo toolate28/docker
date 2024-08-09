@@ -1,0 +1,63 @@
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - JELLYFIN_PublishedServerUrl=${SERVER_IP} # optional
+      - DOCKER_MODS=lizardbyte/themerr-jellyfin:latest|linuxserver/mods:jellyfin-amd
+    devices:
+      - /dev/dri:/dev/dri
+      # - /dev/kfd:/dev/kfd
+    volumes:
+      - ${DDATA}/Jellyfin:/config:rw
+      - ${MEDIA}/tvshows:/data/tvshows:rw
+      - ${MEDIA}/movies:/data/movies:rw
+      - ${MEDIA}/pictures:/data/images:rw
+    ports:
+      - 8096:8096
+      - 8920:8920
+      - 7359:7359/udp
+      - 1900:1900/udp # Corrected from 11900 to 1900
+    restart: unless-stopped
+
+  jellystat-db:
+    image: postgres:15.2
+    environment:
+      - POSTGRES_DB=jfstat
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=tl28root
+    volumes:
+      - ${DDATA}/postgres-data:/var/lib/postgresql/data:rw
+
+  jellystat:
+    image: cyfershepard/jellystat:latest
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=tl28root
+      - POSTGRES_IP=jellystat-db
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=my-secret-jwt-key
+    ports:
+      - "3001:3000" # Server Port
+    volumes:
+      - ${DDATA}/jellystat:/app/backend/backup-data:rw
+    depends_on:
+      - jellystat-db
+    restart: unless-stopped
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - LOG_LEVEL=WARN
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    ports:
+      - 5055:5055
+    volumes:
+      - ${DDATA}/jellyseerr:/app/config:rw
+    restart: unless-stopped

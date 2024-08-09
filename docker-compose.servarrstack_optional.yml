@@ -1,0 +1,78 @@
+ whisparr:
+    image: ghcr.io/thespad/whisparr:latest
+    container_name: whisparr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DDATA}/whisparr:/config:rw
+      - ${BLACKHOLE}:/downloads:rw
+    ports:
+      - 6969:6969
+    restart: unless-stopped
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DDATA}/lidarr:/config:rw # Corrected from ${DOCKERDATA}
+      - ${MEDIA}/music:/music:rw # optional
+      - ${BLACKHOLE}:/downloads:rw # optional
+    ports:
+      - 8686:8686
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DDATA}/prowlarr:/config:rw # Corrected from ${DOCKERDATA}
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DDATA}/sabnzbd:/config:rw # Corrected from ${DOCKERDATA}
+      - ${BLACKHOLE}/sabnzbd:/downloads:rw # optional
+      - ${BLACKHOLE}/tmp:/incomplete-downloads:rw # optional
+    ports:
+      - 8082:8080 # Corrected syntax
+    restart: unless-stopped
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - USER=toolated # optional
+      - PASS=tl28root # optional
+      # - TRANSMISSION_WEB_HOME= # optional
+      # - WHITELIST= # optional
+      # - PEERPORT= # optional
+      # - HOST_WHITELIST= # optional
+    volumes:
+      - ${DDATA}/transmission:/config:rw # Corrected from ${DOCKERDATA}
+      - ${BLACKHOLE}/transmission:/downloads:rw
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    restart: unless-stopped

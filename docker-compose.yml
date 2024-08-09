@@ -1,0 +1,202 @@
+version: '3.8' # You might want to specify the version
+
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - JELLYFIN_PublishedServerUrl=${SERVER_IP} # optional
+      - DOCKER_MODS=lizardbyte/themerr-jellyfin:latest|linuxserver/mods:jellyfin-amd
+    devices:
+      - /dev/dri:/dev/dri
+      # - /dev/kfd:/dev/kfd
+    volumes:
+      - ${DDATA}/Jellyfin:/config:rw
+      - ${MEDIA}/tvshows:/data/tvshows:rw
+      - ${MEDIA}/movies:/data/movies:rw
+      - ${MEDIA}/pictures:/data/images:rw
+    ports:
+      - 8096:8096
+      - 8920:8920
+      - 7359:7359/udp
+      - 1900:1900/udp # Corrected from 11900 to 1900
+    restart: unless-stopped
+
+  jellystat-db:
+    image: postgres:15.2
+    environment:
+      - POSTGRES_DB=jfstat
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=tl28root
+    volumes:
+      - ${DDATA}/postgres-data:/var/lib/postgresql/data:rw
+
+  jellystat:
+    image: cyfershepard/jellystat:latest
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=tl28root
+      - POSTGRES_IP=jellystat-db
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=my-secret-jwt-key
+    ports:
+      - "3001:3000" # Server Port
+    volumes:
+      - ${DDATA}/jellystat:/app/backend/backup-data:rw
+    depends_on:
+      - jellystat-db
+    restart: unless-stopped
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - LOG_LEVEL=WARN
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    ports:
+      - 5055:5055
+    volumes:
+      - ${DDATA}/jellyseerr:/app/config:rw
+    restart: unless-stopped
+
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: jackett
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - AUTO_UPDATE=true # optional
+      - RUN_OPTS= # optional
+    volumes:
+      - ${DDATA}/jackett:/config:rw
+      - ${BLACKHOLE}:/downloads:rw
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_HTML=${LOG_HTML:-true}
+      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
+      - TZ=${TZ}
+    ports:
+      - 8191:8191 # Corrected syntax
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DDATA}/radarr:/config:rw
+      - ${MEDIA}/movies:/movies:rw # optional
+      - ${BLACKHOLE}:/downloads:rw # optional
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DDATA}/sonarr:/config:rw
+      - ${MEDIA}/tvshows:/tv:rw # optional
+      - ${BLACKHOLE}:/downloads:rw # optional
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+
+  whisparr:
+    image: ghcr.io/thespad/whisparr:latest
+    container_name: whisparr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DDATA}/whisparr:/config:rw
+      - ${BLACKHOLE}:/downloads:rw
+    ports:
+      - 6969:6969
+    restart: unless-stopped
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DDATA}/lidarr:/config:rw # Corrected from ${DOCKERDATA}
+      - ${MEDIA}/music:/music:rw # optional
+      - ${BLACKHOLE}:/downloads:rw # optional
+    ports:
+      - 8686:8686
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DDATA}/prowlarr:/config:rw # Corrected from ${DOCKERDATA}
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DDATA}/sabnzbd:/config:rw # Corrected from ${DOCKERDATA}
+      - ${BLACKHOLE}/sabnzbd:/downloads:rw # optional
+      - ${BLACKHOLE}/tmp:/incomplete-downloads:rw # optional
+    ports:
+      - 8082:8080 # Corrected syntax
+    restart: unless-stopped
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - USER=toolated # optional
+      - PASS=tl28root # optional
+      # - TRANSMISSION_WEB_HOME= # optional
+      # - WHITELIST= # optional
+      # - PEERPORT= # optional
+      # - HOST_WHITELIST= # optional
+    volumes:
+      - ${DDATA}/transmission:/config:rw # Corrected from ${DOCKERDATA}
+      - ${BLACKHOLE}/transmission:/downloads:rw
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    restart: unless-stopped
